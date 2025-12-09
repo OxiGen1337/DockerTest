@@ -1,0 +1,79 @@
+# --- Секрет для хранения пароля БД ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+data:
+  # Пароль "mysecretpassword" в кодировке base64
+  POSTGRES_PASSWORD: bXlzZWNyZXRwYXNzd29yZA==
+
+---
+
+# --- Запрос на постоянное хранилище (чтобы данные не терялись при перезапуске) ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi # Запрашиваем 1 ГБ диска
+
+---
+
+# --- Развертывание (Deployment) PostgreSQL ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13 # Используем официальный образ
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "k8s_db"
+        - name: POSTGRES_USER
+          value: "k8s_user"
+        - name: POSTGRES_PASSWORD
+          valueFrom: # Берем пароль из Секрета
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgres-storage # Подключаем диск
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+
+# --- Сервис (Service) для доступа к БД внутри кластера ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc # Это имя будет хостом для подключения из Flask
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP # Доступен только внутри кластера

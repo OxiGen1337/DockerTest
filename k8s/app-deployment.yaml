@@ -1,28 +1,49 @@
+# --- Развертывание (Deployment) Flask-приложения ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
+  name: flask-app-deployment
 spec:
-  replicas: 1
+  replicas: 2 # Запускаем два экземпляра для демонстрации балансировки
   selector:
     matchLabels:
-      app: myapp
+      app: flask-app
   template:
     metadata:
       labels:
-        app: myapp
+        app: flask-app
     spec:
       containers:
-      - name: myapp
-        image: myapp:1.0
-        env:
-        - name: DB_HOST
-          value: postgres
-        - name: DB_USER
-          value: myuser
-        - name: DB_PASSWORD
-          value: mypassword
-        - name: DB_NAME
-          value: mydb
+      - name: flask-app
+        image: flask-app:1.0 # Название нашего образа
+        imagePullPolicy: Never # K8s не будет пытаться скачать образ из интернета
         ports:
         - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: "postgres-svc" # Подключаемся к сервису БД
+        - name: DB_NAME
+          value: "k8s_db"
+        - name: DB_USER
+          value: "k8s_user"
+        - name: DB_PASSWORD
+          valueFrom: # Берем пароль из того же Секрета
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+
+---
+
+# --- Сервис (Service) для доступа к приложению извне ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app-svc
+spec:
+  selector:
+    app: flask-app
+  ports:
+    - protocol: TCP
+      port: 80 # Внешний порт
+      targetPort: 5000 # Порт контейнера
+  type: LoadBalancer # Позволяет получить доступ извне кластера

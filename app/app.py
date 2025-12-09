@@ -1,76 +1,47 @@
-from flask import Flask, request, jsonify
-import psycopg2
 import os
+import psycopg2
+from flask import Flask, request
 
 app = Flask(__name__)
 
-DB_HOST = os.environ.get("DB_HOST")
-DB_NAME = os.environ.get("DB_NAME")
-DB_USER = os.environ.get("DB_USER")
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
-
-def get_connection():
-    return psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
+def get_db_connection():
+    conn = psycopg2.connect(
+        host=os.environ.get('DB_HOST'),
+        database=os.environ.get('DB_NAME'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD')
     )
-
-def init_db():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100)
-        );
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
+    return conn
 
 
-@app.route("/add", methods=["POST"])
-def add_user():
-    data = request.get_json()
-    name = data.get("name")
+@app.route('/')
+def index():
+    """Главная страница, отображающая счетчик посещений."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    if not name:
-        return jsonify({"error": "Name is required"}), 400
+        cur.execute('CREATE TABLE IF NOT EXISTS visits (id SERIAL PRIMARY KEY, count INTEGER);')
 
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO users (name) VALUES (%s) RETURNING id;", (name,))
-    user_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    conn.close()
+        cur.execute('SELECT count FROM visits;')
+        if cur.fetchone() is None:
+            cur.execute('INSERT INTO visits (count) VALUES (0);')
 
-    return jsonify({"message": "User added", "id": user_id})
+        cur.execute('UPDATE visits SET count = count + 1 RETURNING count;')
+        count = cur.fetchone()[0]
 
+        conn.commit()
+        cur.close()
+        conn.close()
 
-@app.route("/users", methods=["GET"])
-def get_users():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name FROM users;")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    users = [{"id": r[0], "name": r[1]} for r in rows]
-
-    return jsonify(users)
+        return f"""
+        <h1>Привет из Kubernetes!</h1>
+        <p>Количество посещений: {count}</p>
+        """
+    except Exception as e:
+        return f"<h1>Ошибка подключения к базе данных</h1><p>{e}</p>"
 
 
-@app.route("/")
-def home():
-    return "API работает! Используйте /add и /users"
-
-
-if __name__ == "__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=5000)
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
