@@ -1,13 +1,13 @@
 import os
 import psycopg2
-from flask import Flask, request
+from flask import Flask
 
 app = Flask(__name__)
 
 DB_HOST = os.environ.get('DB_HOST', 'postgres')
 DB_NAME = os.environ.get('DB_NAME', 'postgres')
 DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'mysecretpassword')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'd2jsa2nk23')
 
 
 def get_db_connection():
@@ -22,14 +22,12 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    """Главная страница с подсчётом посещений."""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
         cur.execute('CREATE TABLE IF NOT EXISTS visits (id SERIAL PRIMARY KEY, count INTEGER);')
 
-        # Проверяем, есть ли строка с count
         cur.execute('SELECT count FROM visits LIMIT 1;')
         row = cur.fetchone()
         if row is None:
