@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+      - name: flask-app
+        image: k8s-test
+        env:
+        - name: DATABASE_URL
+          value: postgresql://postgres:mysecretpassword@postgres:5432/postgres
+        ports:
+        - containerPort: 5000

@@ -4,28 +4,35 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+DB_HOST = os.environ.get('DB_HOST', 'postgres')
+DB_NAME = os.environ.get('DB_NAME', 'postgres')
+DB_USER = os.environ.get('DB_USER', 'postgres')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'mysecretpassword')
+
 
 def get_db_connection():
     conn = psycopg2.connect(
-        host=os.environ.get('DB_HOST'),
-        database=os.environ.get('DB_NAME'),
-        user=os.environ.get('DB_USER'),
-        password=os.environ.get('DB_PASSWORD')
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
     )
     return conn
 
 
 @app.route('/')
 def index():
-    """Главная страница, отображающая счетчик посещений."""
+    """Главная страница с подсчётом посещений."""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
         cur.execute('CREATE TABLE IF NOT EXISTS visits (id SERIAL PRIMARY KEY, count INTEGER);')
 
-        cur.execute('SELECT count FROM visits;')
-        if cur.fetchone() is None:
+        # Проверяем, есть ли строка с count
+        cur.execute('SELECT count FROM visits LIMIT 1;')
+        row = cur.fetchone()
+        if row is None:
             cur.execute('INSERT INTO visits (count) VALUES (0);')
 
         cur.execute('UPDATE visits SET count = count + 1 RETURNING count;')
