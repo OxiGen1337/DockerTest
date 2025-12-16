@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: flask-app
-        image: k8s-test
+        image: oxigen1337/k8s-test
         env:
         - name: DATABASE_URL
           value: postgresql://postgres:mysecretpassword@postgres:5432/postgres
