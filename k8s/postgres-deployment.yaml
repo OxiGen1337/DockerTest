@@ -16,7 +16,7 @@ spec:
       - name: postgres
         image: postgres:13
         env:
-        - name: POSTGRES_PASSWORD
+        - name: DB_PASSWORD
           value: d2jsa2nk23
         ports:
         - containerPort: 5432
