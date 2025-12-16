@@ -17,6 +17,6 @@ spec:
         image: postgres:13
         env:
         - name: POSTGRES_PASSWORD
-          value: d2jsa2nk23saa211881wh#@&^&!*sada
+          value: d2jsa2nk23
         ports:
         - containerPort: 5432

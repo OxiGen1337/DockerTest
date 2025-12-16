@@ -17,6 +17,6 @@ spec:
         image: oxigen1337/k8s-test
         env:
         - name: DATABASE_URL
-          value: postgresql://postgres:mysecretpassword@postgres:5432/postgres
+          value: postgresql://postgres:d2jsa2nk23@postgres:5432/postgres
         ports:
         - containerPort: 5000
